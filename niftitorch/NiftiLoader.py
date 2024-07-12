@@ -117,9 +117,12 @@ class NiftiDataset(Dataset):
         return self._get_slices(scan_to_use, slice_index)
 
     def _get_slices(self, scan_object, slice_idx):
-
-        input_scan = scan_object.get("input")
-        mask_scan = scan_object.get("mask")
+        if self.mmap:
+            input_scan = scan_object.get("input").get_fdata()
+            mask_scan = scan_object.get("mask").get_fdata()
+        else:
+            input_scan = scan_object.get("input")
+            mask_scan = scan_object.get("mask")
 
         # because first and last indexs are set to not include padding
         # we need to add the padding back to the index

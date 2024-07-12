@@ -30,6 +30,12 @@ def test_dataset(test_transform):
 
 
 @pytest.fixture(scope='module')
+def test_dataset_mmap(test_transform):
+    return NiftiDataset(os.path.join(current_dir, 'dataset', 'image'),
+                        os.path.join(current_dir, 'dataset', 'mask'),
+                        test_transform, mmap=True)
+
+@pytest.fixture(scope='module')
 def matched_dataset(test_transform):
     return NiftiDataset(os.path.join(current_dir, 'dataset', 'image'),
                         os.path.join(current_dir, 'dataset', 'image'),
@@ -63,6 +69,11 @@ def matched_dataset_3d_width_label(test_transform):
     return NiftiDataset(os.path.join(current_dir, 'dataset', 'image'),
                         os.path.join(current_dir, 'dataset', 'image'),
                         test_transform, slice_width=5, width_labels=True)
+
+
+def test_dataset_len_mmap(test_dataset_mmap):
+    assert len(test_dataset_mmap.scan_list)
+    assert len(test_dataset_mmap) == 400
 
 
 def test_dataset_len(test_dataset):

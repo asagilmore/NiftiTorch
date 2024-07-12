@@ -83,7 +83,6 @@ class NiftiDataset(Dataset):
         for name, value in locals().items():
             if name != "self":
                 setattr(self, name, value)
-
         if self.slice_width % 2 == 0:
             raise ValueError("Slice width must be an odd number")
 
@@ -93,10 +92,32 @@ class NiftiDataset(Dataset):
         self._resample_scan_list(scan_size)
 
     def __len__(self):
-        if self.scan_list:
+        if self.out_type == "slice":
             return self.scan_list[-1].get("last_index") + 1
+        if self.out_type == "volume":
+            return len(self.scan_list)
+
+    def _get_volume(self, idx):
+        scan = self.scan_list[idx]
+        input_scan = scan.get("input")
+        mask_scan = scan.get("mask")
+        if not self.volume_shape:
+            return self.transform(input_scan, mask_scan)
         else:
-            return 0
+            out_shape = self.volume_shape
+            x_index = np.random.randint(0, input_scan.shape[0] - out_shape[0] + 1)
+            y_index = np.random.randint(0, input_scan.shape[1] - out_shape[1] + 1)
+            z_index = np.random.randint(0, input_scan.shape[2] - out_shape[2] + 1)
+
+            input_scan = input_scan[x_index:x_index + out_shape[0],
+                                    y_index:y_index + out_shape[1],
+                                    z_index:z_index + out_shape[2]]
+
+            mask_scan = mask_scan[x_index:x_index + out_shape[0],
+                                  y_index:y_index + out_shape[1],
+                                  z_index:z_index + out_shape[2]]
+
+            return self.transform(input_scan, mask_scan)
 
     def __getitem__(self, idx):
         # handle negative indexing

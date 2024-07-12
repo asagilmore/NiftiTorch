@@ -105,9 +105,12 @@ class NiftiDataset(Dataset):
             return self.transform(input_scan, mask_scan)
         else:
             out_shape = self.volume_shape
-            x_index = np.random.randint(0, input_scan.shape[0] - out_shape[0] + 1)
-            y_index = np.random.randint(0, input_scan.shape[1] - out_shape[1] + 1)
-            z_index = np.random.randint(0, input_scan.shape[2] - out_shape[2] + 1)
+            x_index = np.random.randint(0,
+                                        input_scan.shape[0] - out_shape[0] + 1)
+            y_index = np.random.randint(0,
+                                        input_scan.shape[1] - out_shape[1] + 1)
+            z_index = np.random.randint(0,
+                                        input_scan.shape[2] - out_shape[2] + 1)
 
             input_scan = input_scan[x_index:x_index + out_shape[0],
                                     y_index:y_index + out_shape[1],

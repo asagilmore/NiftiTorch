@@ -1,4 +1,3 @@
-import os
 from concurrent.futures import ThreadPoolExecutor
 
 from torch.utils.data import Dataset
@@ -230,8 +229,8 @@ class NiftiDataset(Dataset):
             else:
                 self._update_shape_frequencies(input_scan.shape)
 
-            input_slices = self._get_num_slices(input_scan[0])
-            mask_slices = self._get_num_slices(mask_scan[0])
+            input_slices = self._get_num_slices(input_scan)
+            mask_slices = self._get_num_slices(mask_scan)
 
             if input_slices != mask_slices:
                 raise ValueError(f"ID {id} has {input_slices} input slices "

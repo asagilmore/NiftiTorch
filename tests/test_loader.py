@@ -13,6 +13,7 @@ from niftitorch import NiftiDataset  # noqa: E402
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 
+
 @pytest.fixture(scope='module')
 def test_transform():
     return v2.Compose([
@@ -21,6 +22,7 @@ def test_transform():
         v2.Normalize(mean=[0.5], std=[0.5])
     ])
 
+
 @pytest.fixture(scope='module',
                 params=[False, True],
                 ids=["normal", "mmap"])
@@ -28,6 +30,7 @@ def test_dataset(request, test_transform):
     return NiftiDataset(os.path.join(current_dir, 'dataset', 'image'),
                         os.path.join(current_dir, 'dataset', 'mask'),
                         test_transform, mmap=request.param)
+
 
 @pytest.fixture(scope='module',
                 params=[False, True],

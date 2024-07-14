@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import os
 
 # source:
 # https://github.com/nikhilroxtomar/Semantic-Segmentation-Architecture/tree/main
@@ -118,8 +119,9 @@ class UNet(nn.Module):
 
         return outputs
 
-    def train(self, train_loader, val_loader, num_epochs, optimizer=None,
-              criterion=None, scheduler=None, device=None):
+    def train_unet(self, train_loader, val_loader, num_epochs, optimizer=None,
+                   criterion=None, scheduler=None, device=None,
+                   use_checkpoint=True):
         """ Training the model """
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -136,10 +138,20 @@ class UNet(nn.Module):
             scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
                                                         optimizer,
                                                         mode='min',
-                                                        patience=5,
-                                                        verbose=True)
+                                                        patience=5)
 
-        for epoch in range(num_epochs):
+        start_epoch = 0
+
+        if use_checkpoint:
+            if os.path.exists("checkpoint.pth"):
+                print("model checkpoint found, loading model")
+                checkpoint = torch.load("checkpoint.pth")
+                self.load_state_dict(checkpoint["model_state_dict"])
+                optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+                scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+                start_epoch = checkpoint["epoch"]
+
+        for epoch in range(start_epoch, num_epochs):
             self.train()
             train_loss = 0.0
             for inputs, targets in train_loader:
@@ -168,6 +180,13 @@ class UNet(nn.Module):
             val_loss /= len(val_loader)
 
             scheduler.step(val_loss)
+
+            torch.save({
+                "model_state_dict": self.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "scheduler_state_dict": scheduler.state_dict(),
+                "epoch": epoch+1,
+            }, "checkpoint.pth")
 
             print(f"Epoch: {epoch+1}/{num_epochs}, Train Loss: {train_loss}, "
                   f"Val Loss: {val_loss}")

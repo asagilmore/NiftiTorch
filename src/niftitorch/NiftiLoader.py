@@ -5,7 +5,7 @@ import nibabel as nib
 from tqdm import tqdm
 import numpy as np
 from scipy.ndimage import zoom
-from utils import get_matched_ids, get_filepath_list_from_id
+from .utils import get_matched_ids, get_filepath_list_from_id
 
 
 class NiftiDataset(Dataset):

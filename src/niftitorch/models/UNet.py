@@ -117,3 +117,57 @@ class UNet(nn.Module):
         outputs = self.outputs(d4)
 
         return outputs
+
+    def train(self, train_loader, val_loader, num_epochs, optimizer=None,
+              criterion=None, scheduler=None, device=None):
+        """ Training the model """
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        self.to(device)
+
+        if optimizer is None:
+            optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+
+        if criterion is None:
+            criterion = nn.MSELoss()
+
+        if scheduler is None:
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                                                        optimizer,
+                                                        mode='min',
+                                                        patience=5,
+                                                        verbose=True)
+
+        for epoch in range(num_epochs):
+            self.train()
+            train_loss = 0.0
+            for inputs, targets in train_loader:
+                inputs, targets = inputs.to(device), targets.to(device)
+
+                optimizer.zero_grad()
+                outputs = self(inputs)
+                loss = criterion(outputs, targets)
+                loss.backward()
+                optimizer.step()
+
+                train_loss += loss.item()
+
+            train_loss /= len(train_loader)
+
+            self.eval()
+            val_loss = 0.0
+            for inputs, targets in val_loader:
+                inputs, targets = inputs.to(device), targets.to(device)
+
+                outputs = self(inputs)
+                loss = criterion(outputs, targets)
+
+                val_loss += loss.item()
+
+            val_loss /= len(val_loader)
+
+            scheduler.step(val_loss)
+
+            print(f"Epoch: {epoch+1}/{num_epochs}, Train Loss: {train_loss}, "
+                  f"Val Loss: {val_loss}")

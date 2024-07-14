@@ -8,7 +8,7 @@ import torchvision.transforms.v2 as v2
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
                                              'niftitorch')))
 
-from NiftiLoader import NiftiDataset  # noqa: E402
+from niftitorch import NiftiDataset  # noqa: E402
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 

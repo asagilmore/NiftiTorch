@@ -27,9 +27,8 @@ jobs:
         python -m pip install --upgrade pip
         pip install ".[dev]"
 
-    - name: Python flake8 Lint
-      uses: py-actions/flake8@v2.3.0
-      continue-on-error: true
-
     - name: Run tests
       run: pytest tests/
+
+    - name: Python flake8 Lint
+      uses: py-actions/flake8@v2.3.0

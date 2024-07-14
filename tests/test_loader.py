@@ -1,12 +1,8 @@
-import sys
 import os
 
 import pytest
 import torch
 import torchvision.transforms.v2 as v2
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
-                                             'niftitorch')))
 
 from niftitorch import NiftiDataset  # noqa: E402
 

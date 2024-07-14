@@ -1,0 +1,16 @@
+Metadata-Version: 2.1
+Name: niftitorch
+Version: 0.1.0
+Summary: A package for Nifti based machine learning in pytorch
+Author-email: Asa Gilmore <asagil@uw.edu>
+License: MIT
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: torch>=2.3.1
+Requires-Dist: torchvision>=0.18.1
+Requires-Dist: nibabel>=5.2.0
+Requires-Dist: tqdm>=4.6
+Requires-Dist: scipy>=1.13.1
+Provides-Extra: dev
+Requires-Dist: pytest>=6.0; extra == "dev"

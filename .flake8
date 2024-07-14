@@ -2,3 +2,17 @@
 per-file-ignores =
     __init__.py: F401
     test.py: E402
+exclude =
+    build/,
+    .git,
+    __pycache__,
+    .vscode,
+    .pytest_cache,
+    .mypy_cache,
+    .venv,
+    .cache,
+    .hypothesis,
+    .mypy_cache,
+    .pytest_cache,
+    .venv,
+    .vscode

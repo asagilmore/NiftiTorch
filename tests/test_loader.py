@@ -35,11 +35,13 @@ def test_dataset_mmap(test_transform):
                         os.path.join(current_dir, 'dataset', 'mask'),
                         test_transform, mmap=True)
 
+
 @pytest.fixture(scope='module')
 def matched_dataset(test_transform):
     return NiftiDataset(os.path.join(current_dir, 'dataset', 'image'),
                         os.path.join(current_dir, 'dataset', 'image'),
                         test_transform)
+
 
 @pytest.fixture(scope='module')
 def test_dataset_3d(test_transform):
@@ -112,7 +114,8 @@ def test_first_last_3d_width_label(test_dataset_3d_width_label):
     assert test_dataset_3d_width_label[len(test_dataset_3d_width_label) - 1]
 
     with pytest.raises(IndexError):
-        assert not test_dataset_3d_width_label[len(test_dataset_3d_width_label)]
+        assert not test_dataset_3d_width_label[len(
+                                                  test_dataset_3d_width_label)]
 
 
 def test_shape(test_dataset):

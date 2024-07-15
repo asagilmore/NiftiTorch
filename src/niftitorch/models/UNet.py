@@ -154,6 +154,7 @@ class UNet(nn.Module):
         for epoch in range(start_epoch, num_epochs):
             self.train()
             train_loss = 0.0
+            total_samples = 0
             for inputs, targets in train_loader:
                 inputs, targets = inputs.to(device), targets.to(device)
 
@@ -164,11 +165,13 @@ class UNet(nn.Module):
                 optimizer.step()
 
                 train_loss += loss.item()
+                total_samples += inputs.size(0)
 
-            train_loss /= len(train_loader)
+            train_loss /= total_samples
 
             self.eval()
             val_loss = 0.0
+            total_samples
             for inputs, targets in val_loader:
                 inputs, targets = inputs.to(device), targets.to(device)
 
@@ -176,9 +179,9 @@ class UNet(nn.Module):
                 loss = criterion(outputs, targets)
 
                 val_loss += loss.item()
+                total_samples += inputs.size(0)
 
-            val_loss /= len(val_loader)
-
+            val_loss /= total_samples
             scheduler.step(val_loss)
 
             torch.save({

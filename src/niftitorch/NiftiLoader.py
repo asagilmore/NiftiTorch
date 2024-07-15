@@ -12,12 +12,9 @@ class NiftiDataset(Dataset):
     '''
     Dataset class for Nifti to Nifti data.
     This class takes as input two matching datasets of Nifti images
-    and returns one the data in any of the following ways:
+    and returns one the data in one of the following ways:
         - 2d slices of the images across any axis
         - 2d slices with a width of n slices on either side of the slice
-        - 3d volumes of the entire image
-        - 3d volumes of a specified shape, sampled randomly from the images
-
 
     Parameters
     ----------
@@ -27,13 +24,6 @@ class NiftiDataset(Dataset):
         Path to the directory containing the mask nifti files
     transform : callable
         Implementation of a torchvision transform to apply to the data
-    out_type : str, optional
-        Type of data to return. Options are 'slice', 'width_slice', 'volume'.
-        'slice' causes the dataset to output 2d slices from the nifti files,
-        'width_slice' returns slices with a width of n stacked along the
-        channel dimension, and 'volume' returns a 3d volume, either the entire
-        volume or of a specified shape.
-        default is "slice"
     split_char : str, optional
         Character used to split the UID from the filenames of the matched
         files. an example file might look like this 1234-t1.nii.gz, where
@@ -66,23 +56,19 @@ class NiftiDataset(Dataset):
         slices. If False, the labels will be returned as a 2d slice
         corresponding to the center slice of the input.
         default is False
-    volume_shape : tuple, optional
-        This argument is used if out_type is 'volume'. It specifies the shape
-        of the volume to return. If None, the entire volume is returned.
-        default is None
     mmap : bool, optional
         This argument is used to load the nifti files as memory-mapped files.
         This is useful if the dataset cannot fit in memory, but signifiticaly
         increases batch loading time. If used it is recoomented to use multiple
         workers with a high prefetch factor.
     '''
-    def __init__(self, input_dir, mask_dir, transform, out_type="slice",
+    def __init__(self, input_dir, mask_dir, transform,
                  split_char="-", preload_dtype="float32", scan_size='most',
-                 slice_axis=2, slice_width=1, width_labels=False,
-                 volume_shape=None, mmap=False):
+                 slice_axis=2, slice_width=1, width_labels=False, mmap=False):
         for name, value in locals().items():
             if name != "self":
                 setattr(self, name, value)
+
         if self.slice_width % 2 == 0:
             raise ValueError("Slice width must be an odd number")
 
@@ -92,35 +78,10 @@ class NiftiDataset(Dataset):
         self._resample_scan_list(scan_size)
 
     def __len__(self):
-        if self.out_type == "slice":
+        if self.scan_list:
             return self.scan_list[-1].get("last_index") + 1
-        if self.out_type == "volume":
-            return len(self.scan_list)
-
-    def _get_volume(self, idx):
-        scan = self.scan_list[idx]
-        input_scan = scan.get("input")
-        mask_scan = scan.get("mask")
-        if not self.volume_shape:
-            return self.transform(input_scan, mask_scan)
         else:
-            out_shape = self.volume_shape
-            x_index = np.random.randint(0,
-                                        input_scan.shape[0] - out_shape[0] + 1)
-            y_index = np.random.randint(0,
-                                        input_scan.shape[1] - out_shape[1] + 1)
-            z_index = np.random.randint(0,
-                                        input_scan.shape[2] - out_shape[2] + 1)
-
-            input_scan = input_scan[x_index:x_index + out_shape[0],
-                                    y_index:y_index + out_shape[1],
-                                    z_index:z_index + out_shape[2]]
-
-            mask_scan = mask_scan[x_index:x_index + out_shape[0],
-                                  y_index:y_index + out_shape[1],
-                                  z_index:z_index + out_shape[2]]
-
-            return self.transform(input_scan, mask_scan)
+            return 0
 
     def __getitem__(self, idx):
         # handle negative indexing
@@ -321,3 +282,50 @@ class NiftiDataset(Dataset):
             return sum(shape)
         else:
             return scan_data.shape[self.slice_axis]
+
+
+class NiftiDataset3d(NiftiDataset):
+    def __init__(self, input_dir, mask_dir, transform, volume_shape=None, *args,
+                 **kwargs):
+        self.volume_shape = volume_shape
+        super().__init__(input_dir, mask_dir, transform, *args, **kwargs)
+
+    def __len__(self):
+        return len(self.scan_list)
+
+    def __getitem__(self, idx):
+        # handle negative indexing
+        if idx < 0:
+            idx = len(self) + idx
+
+        image = self.scan_list[idx].get("input")
+        mask = self.scan_list[idx].get("mask")
+
+        if self.mmap:
+            image = image.get_fdata()
+            mask = mask.get_fdata()
+
+        if self.volume_shape:
+            image, mask = self._get_volume(image, mask)
+            return self.transform(image, mask)
+        else:
+            return self.transform(image, mask)
+
+    def _get_volume(self, image, mask):
+        out_shape = self.volume_shape
+        x_index = np.random.randint(0,
+                                    image.shape[0] - out_shape[0] + 1)
+        y_index = np.random.randint(0,
+                                    image.shape[1] - out_shape[1] + 1)
+        z_index = np.random.randint(0,
+                                    image.shape[2] - out_shape[2] + 1)
+
+        image = image[x_index:x_index + out_shape[0],
+                      y_index:y_index + out_shape[1],
+                      z_index:z_index + out_shape[2]]
+
+        mask = mask[x_index:x_index + out_shape[0],
+                    y_index:y_index + out_shape[1],
+                    z_index:z_index + out_shape[2]]
+
+        return image, mask

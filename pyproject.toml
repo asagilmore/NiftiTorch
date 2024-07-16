@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "niftitorch"
+version = "0.1.0"
+description = "A package for Nifti based machine learning in pytorch"
+authors = [
+    {name = "Asa Gilmore", email = "asagil@uw.edu"},
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "torch>=2.3.1",
+    "torchvision>=0.18.1",
+    "nibabel>=5.2.0",
+    "tqdm>=4.6",
+    "scipy>=1.13.1"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["niftitorch*"]
+exclude = ["tests*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -5,7 +5,7 @@ import nibabel as nib
 from tqdm import tqdm
 import numpy as np
 from scipy.ndimage import zoom
-from utils import get_matched_ids, get_filepath_list_from_id
+from .utils import get_matched_ids, get_filepath_list_from_id
 
 
 class NiftiDataset(Dataset):
@@ -90,7 +90,8 @@ class NiftiDataset(Dataset):
         self.shape_frequencies = {}
 
         self.scan_list = self._load_scan_list()
-        self._resample_scan_list(scan_size)
+        if not self.mmap:
+            self._resample_scan_list(scan_size)
 
     def __len__(self):
         if self.scan_list:
@@ -117,9 +118,17 @@ class NiftiDataset(Dataset):
         return self._get_slices(scan_to_use, slice_index)
 
     def _get_slices(self, scan_object, slice_idx):
-
-        input_scan = scan_object.get("input")
-        mask_scan = scan_object.get("mask")
+        if self.mmap:
+            input_scan = scan_object.get("input").get_fdata()
+            mask_scan = scan_object.get("mask").get_fdata()
+            new_shape = self._get_resample_shape()
+            if input_scan.shape != new_shape:
+                input_scan = self._resample_image(input_scan, new_shape)
+            if mask_scan.shape != new_shape:
+                mask_scan = self._resample_image(mask_scan, new_shape)
+        else:
+            input_scan = scan_object.get("input")
+            mask_scan = scan_object.get("mask")
 
         # because first and last indexs are set to not include padding
         # we need to add the padding back to the index
@@ -172,7 +181,8 @@ class NiftiDataset(Dataset):
         reasampled_image = zoom(image, zoom_factors, order=1)
         return reasampled_image.astype(self.preload_dtype)
 
-    def _resample_scan_list(self, scan_size):
+    def _get_resample_shape(self):
+        scan_size = self.scan_size
         if scan_size == 'most':
             new_shape = max(self.shape_frequencies,
                             key=self.shape_frequencies.get)
@@ -200,7 +210,10 @@ class NiftiDataset(Dataset):
 
         else:
             new_shape = scan_size
+        return new_shape
 
+    def _resample_scan_list(self, scan_size):
+        new_shape = self._get_resample_shape()
         for scan in self.scan_list:
             if scan['input'].shape != new_shape:
                 scan['input'] = self._resample_image(scan['input'], new_shape)

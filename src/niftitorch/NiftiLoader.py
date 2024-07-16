@@ -285,8 +285,8 @@ class NiftiDataset(Dataset):
 
 
 class NiftiDataset3d(NiftiDataset):
-    def __init__(self, input_dir, mask_dir, transform, volume_shape=None, *args,
-                 **kwargs):
+    def __init__(self, input_dir, mask_dir, transform, volume_shape=None,
+                 *args, **kwargs):
         self.volume_shape = volume_shape
         super().__init__(input_dir, mask_dir, transform, *args, **kwargs)
 

@@ -1,2 +1,2 @@
-from . import models
+from . import models, losses, transforms
 from .NiftiLoader import NiftiDataset

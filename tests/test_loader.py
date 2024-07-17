@@ -20,71 +20,55 @@ def test_transform():
     ])
 
 
-@pytest.fixture(scope='module',
-                params=[False, True],
-                ids=["normal", "mmap"])
-def test_dataset(request, test_transform):
+@pytest.fixture(scope='module')
+def test_dataset(test_transform):
     return NiftiDataset(os.path.join(current_dir, 'dataset', 'image'),
                         os.path.join(current_dir, 'dataset', 'mask'),
-                        test_transform, mmap=request.param)
+                        test_transform)
 
 
-@pytest.fixture(scope='module',
-                params=[False, True],
-                ids=["normal", "mmap"])
-def test_dataset_3d(request, test_transform):
+@pytest.fixture(scope='module')
+def test_dataset_3d(test_transform):
     return NiftiDataset(os.path.join(current_dir, 'dataset', 'image'),
                         os.path.join(current_dir, 'dataset', 'mask'),
-                        test_transform, slice_width=5,
-                        mmap=request.param)
+                        test_transform, slice_width=5)
 
 
-@pytest.fixture(scope='module',
-                params=[False, True],
-                ids=["normal", "mmap"])
-def test_dataset_3d_width(request, test_transform):
+@pytest.fixture(scope='module')
+def test_dataset_3d_width(test_transform):
     return NiftiDataset(os.path.join(current_dir, 'dataset', 'image'),
                         os.path.join(current_dir, 'dataset', 'mask'),
-                        test_transform, slice_width=5, width_labels=True,
-                        mmap=request.param)
+                        test_transform, slice_width=5, width_labels=True)
 
 
-@pytest.fixture(scope='module',
-                params=[False, True],
-                ids=["normal", "mmap"])
-def matched_test_dataset(request, test_transform):
+@pytest.fixture(scope='module')
+def matched_test_dataset(test_transform):
     return NiftiDataset(os.path.join(current_dir, 'dataset', 'image'),
                         os.path.join(current_dir, 'dataset', 'image'),
-                        test_transform, mmap=request.param)
+                        test_transform)
 
 
-@pytest.fixture(scope='module',
-                params=[False, True],
-                ids=["normal", "mmap"])
-def matched_test_dataset_3d(request, test_transform):
+@pytest.fixture(scope='module')
+def matched_test_dataset_3d(test_transform):
     return NiftiDataset(os.path.join(current_dir, 'dataset', 'image'),
                         os.path.join(current_dir, 'dataset', 'image'),
-                        test_transform, slice_width=5,
-                        mmap=request.param)
+                        test_transform, slice_width=5)
 
 
-@pytest.fixture(scope='module',
-                params=[False, True],
-                ids=["normal", "mmap"])
-def matched_test_dataset_3d_width(request, test_transform):
+@pytest.fixture(scope='module')
+def matched_test_dataset_3d_width(test_transform):
     return NiftiDataset(os.path.join(current_dir, 'dataset', 'image'),
                         os.path.join(current_dir, 'dataset', 'image'),
-                        test_transform, slice_width=5, width_labels=True,
-                        mmap=request.param)
+                        test_transform, slice_width=5, width_labels=True)
 
 
 def test_dataset_len(test_dataset):
-    assert len(test_dataset) == 400
+    assert len(test_dataset) == (92 + 200)
 
 
 def test_dataset_3d_len(test_dataset_3d, test_dataset_3d_width):
-    assert len(test_dataset_3d) == 384
-    assert len(test_dataset_3d_width) == 384
+    assert len(test_dataset_3d) == (92 + 200 - 12)
+    assert len(test_dataset_3d_width) == (92 + 200 - 12)
 
 
 def test_first_last(test_dataset, test_dataset_3d, test_dataset_3d_width):

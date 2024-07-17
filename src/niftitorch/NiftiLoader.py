@@ -64,7 +64,7 @@ class NiftiDataset(Dataset):
     '''
     def __init__(self, input_dir, mask_dir, transform,
                  split_char="-", preload_dtype="float32", scan_size='most',
-                 slice_axis=2, slice_width=1, width_labels=False, mmap=False):
+                 slice_axis=2, slice_width=1, width_labels=False):
         for name, value in locals().items():
             if name != "self":
                 setattr(self, name, value)
@@ -75,8 +75,6 @@ class NiftiDataset(Dataset):
         self.shape_frequencies = {}
 
         self.scan_list = self._load_scan_list()
-        if not self.mmap:
-            self._resample_scan_list(scan_size)
 
     def __len__(self):
         if self.scan_list:
@@ -102,58 +100,6 @@ class NiftiDataset(Dataset):
 
         return self._get_slices(scan_to_use, slice_index)
 
-    # def _get_slices(self, scan_object, slice_idx):
-    #     if self.mmap:
-    #         input_scan = scan_object.get("input").get_fdata()
-    #         mask_scan = scan_object.get("mask").get_fdata()
-    #         new_shape = self._get_resample_shape()
-    #         if input_scan.shape != new_shape:
-    #             input_scan = self._resample_image(input_scan, new_shape)
-    #         if mask_scan.shape != new_shape:
-    #             mask_scan = self._resample_image(mask_scan, new_shape)
-    #     else:
-    #         input_scan = scan_object.get("input")
-    #         mask_scan = scan_object.get("mask")
-
-    #     # because first and last indexs are set to not include padding
-    #     # we need to add the padding back to the index
-    #     if self.slice_width == 1:
-    #         offset = 0
-    #     else:
-    #         offset = self.slice_width // 2
-    #     slice_idx += offset
-    #     start_idx = slice_idx - offset
-    #     # end_idx is exclusive so add 1
-    #     end_idx = slice_idx + offset + 1
-
-    #     if self.slice_axis == 0:
-    #         input_slice = input_scan[start_idx:end_idx, :, :]
-    #         if self.width_labels:
-    #             mask_slice = mask_scan[start_idx:end_idx, :, :]
-    #         else:
-    #             mask_slice = mask_scan[slice_idx, :, :]
-    #         mask_slice = mask_scan[start_idx:end_idx, :, :]
-    #     elif self.slice_axis == 1:
-    #         input_slice = input_scan[:, start_idx:end_idx, :]
-    #         if self.width_labels:
-    #             mask_slice = mask_scan[:, start_idx:end_idx, :]
-    #         else:
-    #             mask_slice = mask_scan[:, slice_idx, :]
-    #     elif self.slice_axis == 2:
-    #         input_slice = input_scan[:, :, start_idx:end_idx]
-    #         if self.width_labels:
-    #             mask_slice = mask_scan[:, :, start_idx:end_idx]
-    #         else:
-    #             mask_slice = mask_scan[:, :, slice_idx]
-
-    #     input_slice, mask_slice = self.transform(input_slice, mask_slice)
-
-    #     # cleanup
-    #     scan_object.get("input").uncache()
-    #     scan_object.get("mask").uncache()
-
-    #     return input_slice, mask_slice
-
     def _get_slices(self, scan_object, slice_idx):
 
         if self.slice_width == 1:
@@ -177,18 +123,30 @@ class NiftiDataset(Dataset):
             slices_input[self.slice_axis] = slice(start_idx, end_idx)
             slices_mask[self.slice_axis] = slice(slice_idx, slice_idx + 1)
 
-        if self.mmap:
-            input_slice = scan_object.get("input").get_fdata()[tuple(
-                                                         slices_input)]
-            mask_slice = scan_object.get("mask").get_fdata()[tuple(
-                                                        slices_mask)]
-            scan_object.get("input").uncache()
-            scan_object.get("mask").uncache()
-        else:
-            input_slice = scan_object.get("input")[tuple(slices_input)]
-            mask_slice = scan_object.get("mask")[tuple(slices_mask)]
+        input_slice = scan_object.get("input").dataobj[tuple(slices_input)]
+        mask_slice = scan_object.get("mask").dataobj[tuple(slices_mask)]
 
-        return self.transform(input_slice, mask_slice)
+        # new_axes_order = [self.slice_axis] + [i for i in range(3) if i != self.slice_axis]
+        # input_slice = np.transpose(input_slice, new_axes_order).copy()
+        # mask_slice = np.transpose(mask_slice, new_axes_order).copy()
+
+        image_resample_shape = list(self._get_resample_shape())
+        mask_resample_shape = list(self._get_resample_shape())
+        if self.width_labels:
+            image_resample_shape[self.slice_axis] = self.slice_width
+            mask_resample_shape[self.slice_axis] = self.slice_width
+        else:
+            image_resample_shape[self.slice_axis] = self.slice_width
+            mask_resample_shape[self.slice_axis] = 1
+
+        if input_slice.shape != tuple(image_resample_shape):
+            input_slice = self._resample_image(input_slice,
+                                               image_resample_shape)
+        if mask_slice.shape != tuple(mask_resample_shape):
+            mask_slice = self._resample_image(mask_slice,
+                                              mask_resample_shape)
+
+        return self.transform(input_slice.copy(), mask_slice.copy())
 
     def _update_shape_frequencies(self, shape):
         if shape not in self.shape_frequencies:
@@ -235,15 +193,8 @@ class NiftiDataset(Dataset):
 
         else:
             new_shape = scan_size
-        return new_shape
 
-    def _resample_scan_list(self, scan_size):
-        new_shape = self._get_resample_shape()
-        for scan in self.scan_list:
-            if scan['input'].shape != new_shape:
-                scan['input'] = self._resample_image(scan['input'], new_shape)
-            if scan['mask'].shape != new_shape:
-                scan['mask'] = self._resample_image(scan['mask'], new_shape)
+        return new_shape
 
     def _load_scan(self, id):
         input_paths = get_filepath_list_from_id(self.input_dir, id)
@@ -251,12 +202,8 @@ class NiftiDataset(Dataset):
 
         if len(input_paths) == 1 and len(mask_paths) == 1:
 
-            if self.mmap:
-                input_scan = nib.load(input_paths[0], mmap=True)
-                mask_scan = nib.load(mask_paths[0], mmap=True)
-            else:
-                input_scan = nib.load(input_paths[0]).get_fdata()
-                mask_scan = nib.load(mask_paths[0]).get_fdata()
+            input_scan = nib.load(input_paths[0], mmap=True)
+            mask_scan = nib.load(mask_paths[0], mmap=True)
 
             # update shape frequencies
             if input_scan.shape != mask_scan.shape:
@@ -288,12 +235,14 @@ class NiftiDataset(Dataset):
         ids = get_matched_ids([self.input_dir, self.mask_dir],
                               split_char=self.split_char)
 
-        # mutlthreading starts here
-        with ThreadPoolExecutor() as executor:
-            result_list = list(tqdm(executor.map(self._load_scan, ids),
-                                    total=len(ids)))
-            # we now have a list as follows:
-            # [{'input': input_scan, 'mask': mask_scan, 'slices': slices}, ...]
+        result_list = []
+        for id in tqdm(ids):
+            result_list.append(self._load_scan(id))
+
+        # # mutlthreading starts here
+        # with ThreadPoolExecutor() as executor:
+        #     result_list = list(tqdm(executor.map(self._load_scan, ids),
+        #                             total=len(ids)))
 
         # now we count up the slices and add the first and last index
         scan_list = []
@@ -351,9 +300,8 @@ class NiftiDataset3d(NiftiDataset):
         image = self.scan_list[idx].get("input")
         mask = self.scan_list[idx].get("mask")
 
-        if self.mmap:
-            image = image.get_fdata()
-            mask = mask.get_fdata()
+        image = image.get_fdata()
+        mask = mask.get_fdata()
 
         if self.volume_shape:
             image, mask = self._get_volume(image, mask)

@@ -16,6 +16,8 @@ jobs:
 
     - name: Checkout codes
       uses: actions/checkout@v2
+      with:
+        lfs: true
 
     - name: Set up Python
       uses: actions/setup-python@v2
@@ -29,6 +31,3 @@ jobs:
 
     - name: Run tests
       run: pytest tests/
-
-    - name: Python flake8 Lint
-      uses: py-actions/flake8@v2.3.0

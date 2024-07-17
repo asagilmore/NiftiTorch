@@ -64,7 +64,8 @@ class NiftiDataset(Dataset):
     '''
     def __init__(self, input_dir, mask_dir, transform,
                  split_char="-", preload_dtype="float32", scan_size='most',
-                 slice_axis=2, slice_width=1, width_labels=False, mmap=False):
+                 slice_axis=2, slice_width=1, width_labels=False,
+                 force_no_resample=False):
         for name, value in locals().items():
             if name != "self":
                 setattr(self, name, value)
@@ -75,8 +76,6 @@ class NiftiDataset(Dataset):
         self.shape_frequencies = {}
 
         self.scan_list = self._load_scan_list()
-        if not self.mmap:
-            self._resample_scan_list(scan_size)
 
     def __len__(self):
         if self.scan_list:
@@ -103,52 +102,51 @@ class NiftiDataset(Dataset):
         return self._get_slices(scan_to_use, slice_index)
 
     def _get_slices(self, scan_object, slice_idx):
-        if self.mmap:
-            input_scan = scan_object.get("input").get_fdata()
-            mask_scan = scan_object.get("mask").get_fdata()
-            new_shape = self._get_resample_shape()
-            if input_scan.shape != new_shape:
-                input_scan = self._resample_image(input_scan, new_shape)
-            if mask_scan.shape != new_shape:
-                mask_scan = self._resample_image(mask_scan, new_shape)
-        else:
-            input_scan = scan_object.get("input")
-            mask_scan = scan_object.get("mask")
 
-        # because first and last indexs are set to not include padding
-        # we need to add the padding back to the index
         if self.slice_width == 1:
             offset = 0
         else:
             offset = self.slice_width // 2
         slice_idx += offset
         start_idx = slice_idx - offset
-        # end_idx is exclusive so add 1
         end_idx = slice_idx + offset + 1
 
-        if self.slice_axis == 0:
-            input_slice = input_scan[start_idx:end_idx, :, :]
-            if self.width_labels:
-                mask_slice = mask_scan[start_idx:end_idx, :, :]
-            else:
-                mask_slice = mask_scan[slice_idx, :, :]
-            mask_slice = mask_scan[start_idx:end_idx, :, :]
-        elif self.slice_axis == 1:
-            input_slice = input_scan[:, start_idx:end_idx, :]
-            if self.width_labels:
-                mask_slice = mask_scan[:, start_idx:end_idx, :]
-            else:
-                mask_slice = mask_scan[:, slice_idx, :]
-        elif self.slice_axis == 2:
-            input_slice = input_scan[:, :, start_idx:end_idx]
-            if self.width_labels:
-                mask_slice = mask_scan[:, :, start_idx:end_idx]
-            else:
-                mask_slice = mask_scan[:, :, slice_idx]
+        # Determine the slicing based on the axis
+        slice_none = slice(None, None, None)  # Equivalent to ':'
+        slices_input = [slice_none, slice_none, slice_none]
+        slices_mask = [slice_none, slice_none, slice_none]
 
-        input_slice, mask_slice = self.transform(input_slice, mask_slice)
+        # Set the appropriate slice based on the axis
+        if self.width_labels:
+            slices_input[self.slice_axis] = slice(start_idx, end_idx)
+            slices_mask[self.slice_axis] = slice(start_idx, end_idx)
+        else:
+            slices_input[self.slice_axis] = slice(start_idx, end_idx)
+            slices_mask[self.slice_axis] = slice(slice_idx, slice_idx + 1)
 
-        return input_slice, mask_slice
+        input_slice = scan_object.get("input").dataobj[tuple(slices_input)]
+        mask_slice = scan_object.get("mask").dataobj[tuple(slices_mask)]
+
+        if len(self.shape_frequencies) == 1 or self.force_no_resample:
+            return self.transform(input_slice.copy(), mask_slice.copy())
+        else:
+            image_resample_shape = list(self._get_resample_shape())
+            mask_resample_shape = list(self._get_resample_shape())
+            if self.width_labels:
+                image_resample_shape[self.slice_axis] = self.slice_width
+                mask_resample_shape[self.slice_axis] = self.slice_width
+            else:
+                image_resample_shape[self.slice_axis] = self.slice_width
+                mask_resample_shape[self.slice_axis] = 1
+
+            if input_slice.shape != tuple(image_resample_shape):
+                input_slice = self._resample_image(input_slice,
+                                                   image_resample_shape)
+            if mask_slice.shape != tuple(mask_resample_shape):
+                mask_slice = self._resample_image(mask_slice,
+                                                  mask_resample_shape)
+
+            return self.transform(input_slice.copy(), mask_slice.copy())
 
     def _update_shape_frequencies(self, shape):
         if shape not in self.shape_frequencies:
@@ -160,7 +158,7 @@ class NiftiDataset(Dataset):
         '''
         Resamples the input image to the new shape
         '''
-        image = image.astype(np.float32)
+
         zoom_factors = [new_dim / old_dim for new_dim, old_dim in
                         zip(new_shape, image.shape)]
         reasampled_image = zoom(image, zoom_factors, order=1)
@@ -175,8 +173,7 @@ class NiftiDataset(Dataset):
         elif scan_size == 'largest':
             largest_shape = None
             largest_size = 0
-            for shape, occurrences in self.shapes_dict.items():
-
+            for shape, occurrences in self.shape_frequencies.items():
                 size = shape[0] * shape[1] * shape[2]
                 if size > largest_size:
                     largest_shape = shape
@@ -186,7 +183,7 @@ class NiftiDataset(Dataset):
         elif scan_size == 'smallest':
             smallest_shape = None
             smallest_size = np.inf
-            for shape, occurrences in self.shapes_dict.items():
+            for shape, occurrences in self.shape_frequencies.items():
                 size = shape[0] * shape[1] * shape[2]
                 if size < smallest_size:
                     smallest_shape = shape
@@ -195,15 +192,8 @@ class NiftiDataset(Dataset):
 
         else:
             new_shape = scan_size
-        return new_shape
 
-    def _resample_scan_list(self, scan_size):
-        new_shape = self._get_resample_shape()
-        for scan in self.scan_list:
-            if scan['input'].shape != new_shape:
-                scan['input'] = self._resample_image(scan['input'], new_shape)
-            if scan['mask'].shape != new_shape:
-                scan['mask'] = self._resample_image(scan['mask'], new_shape)
+        return new_shape
 
     def _load_scan(self, id):
         input_paths = get_filepath_list_from_id(self.input_dir, id)
@@ -211,12 +201,8 @@ class NiftiDataset(Dataset):
 
         if len(input_paths) == 1 and len(mask_paths) == 1:
 
-            if self.mmap:
-                input_scan = nib.load(input_paths[0], mmap=True)
-                mask_scan = nib.load(mask_paths[0], mmap=True)
-            else:
-                input_scan = nib.load(input_paths[0]).get_fdata()
-                mask_scan = nib.load(mask_paths[0]).get_fdata()
+            input_scan = nib.load(input_paths[0], mmap=True)
+            mask_scan = nib.load(mask_paths[0], mmap=True)
 
             # update shape frequencies
             if input_scan.shape != mask_scan.shape:
@@ -248,12 +234,14 @@ class NiftiDataset(Dataset):
         ids = get_matched_ids([self.input_dir, self.mask_dir],
                               split_char=self.split_char)
 
+        # result_list = []
+        # for id in tqdm(ids):
+        #     result_list.append(self._load_scan(id))
+
         # mutlthreading starts here
         with ThreadPoolExecutor() as executor:
             result_list = list(tqdm(executor.map(self._load_scan, ids),
                                     total=len(ids)))
-            # we now have a list as follows:
-            # [{'input': input_scan, 'mask': mask_scan, 'slices': slices}, ...]
 
         # now we count up the slices and add the first and last index
         scan_list = []
@@ -311,9 +299,8 @@ class NiftiDataset3d(NiftiDataset):
         image = self.scan_list[idx].get("input")
         mask = self.scan_list[idx].get("mask")
 
-        if self.mmap:
-            image = image.get_fdata()
-            mask = mask.get_fdata()
+        image = image.get_fdata()
+        mask = mask.get_fdata()
 
         if self.volume_shape:
             image, mask = self._get_volume(image, mask)

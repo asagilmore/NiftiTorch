@@ -121,7 +121,8 @@ class UNet(nn.Module):
 
     def train_unet(self, train_loader, val_loader, num_epochs, optimizer=None,
                    criterion=None, scheduler=None, device=None,
-                   use_checkpoint=True):
+                   use_checkpoint=True,
+                   checkpoint_path="checkpoint.pth"):
         """ Training the model """
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -143,9 +144,9 @@ class UNet(nn.Module):
         start_epoch = 0
 
         if use_checkpoint:
-            if os.path.exists("checkpoint.pth"):
+            if os.path.exists(checkpoint_path):
                 print("model checkpoint found, loading model")
-                checkpoint = torch.load("checkpoint.pth")
+                checkpoint = torch.load(checkpoint_path)
                 self.load_state_dict(checkpoint["model_state_dict"])
                 optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
                 scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
@@ -190,7 +191,7 @@ class UNet(nn.Module):
                 "optimizer_state_dict": optimizer.state_dict(),
                 "scheduler_state_dict": scheduler.state_dict(),
                 "epoch": epoch+1,
-            }, "checkpoint.pth")
+            }, checkpoint_path)
 
             print(f"Epoch: {epoch+1}/{num_epochs}, Train Loss: {train_loss}, "
                   f"Val Loss: {val_loss}")

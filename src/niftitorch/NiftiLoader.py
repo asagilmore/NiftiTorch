@@ -29,10 +29,6 @@ class NiftiDataset(Dataset):
         files. an example file might look like this 1234-t1.nii.gz, where
         1234 is the UID.
         default is "-"
-    preload_dtype : str, optional
-        Data type to load the nifti files as. "Float16" can be used to save
-        memory, but may reduce precision.
-        default is "float32".
     scan_size : str or tuple, optional
         Size to resample all images to before loading. Options are 'most',
         'largest', 'smallest', 'false', or a tuple of the desired shape.
@@ -56,14 +52,9 @@ class NiftiDataset(Dataset):
         slices. If False, the labels will be returned as a 2d slice
         corresponding to the center slice of the input.
         default is False
-    mmap : bool, optional
-        This argument is used to load the nifti files as memory-mapped files.
-        This is useful if the dataset cannot fit in memory, but signifiticaly
-        increases batch loading time. If used it is recoomented to use multiple
-        workers with a high prefetch factor.
     '''
     def __init__(self, input_dir, mask_dir, transform,
-                 split_char="-", preload_dtype="float32", scan_size='most',
+                 split_char="-", scan_size='most',
                  slice_axis=2, slice_width=1, width_labels=False,
                  force_no_resample=False):
         for name, value in locals().items():
@@ -162,7 +153,7 @@ class NiftiDataset(Dataset):
         zoom_factors = [new_dim / old_dim for new_dim, old_dim in
                         zip(new_shape, image.shape)]
         reasampled_image = zoom(image, zoom_factors, order=1)
-        return reasampled_image.astype(self.preload_dtype)
+        return reasampled_image
 
     def _get_resample_shape(self):
         scan_size = self.scan_size

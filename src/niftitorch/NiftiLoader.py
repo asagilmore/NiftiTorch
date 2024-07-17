@@ -102,53 +102,93 @@ class NiftiDataset(Dataset):
 
         return self._get_slices(scan_to_use, slice_index)
 
-    def _get_slices(self, scan_object, slice_idx):
-        if self.mmap:
-            input_scan = scan_object.get("input").get_fdata()
-            mask_scan = scan_object.get("mask").get_fdata()
-            new_shape = self._get_resample_shape()
-            if input_scan.shape != new_shape:
-                input_scan = self._resample_image(input_scan, new_shape)
-            if mask_scan.shape != new_shape:
-                mask_scan = self._resample_image(mask_scan, new_shape)
-        else:
-            input_scan = scan_object.get("input")
-            mask_scan = scan_object.get("mask")
+    # def _get_slices(self, scan_object, slice_idx):
+    #     if self.mmap:
+    #         input_scan = scan_object.get("input").get_fdata()
+    #         mask_scan = scan_object.get("mask").get_fdata()
+    #         new_shape = self._get_resample_shape()
+    #         if input_scan.shape != new_shape:
+    #             input_scan = self._resample_image(input_scan, new_shape)
+    #         if mask_scan.shape != new_shape:
+    #             mask_scan = self._resample_image(mask_scan, new_shape)
+    #     else:
+    #         input_scan = scan_object.get("input")
+    #         mask_scan = scan_object.get("mask")
 
-        # because first and last indexs are set to not include padding
-        # we need to add the padding back to the index
+    #     # because first and last indexs are set to not include padding
+    #     # we need to add the padding back to the index
+    #     if self.slice_width == 1:
+    #         offset = 0
+    #     else:
+    #         offset = self.slice_width // 2
+    #     slice_idx += offset
+    #     start_idx = slice_idx - offset
+    #     # end_idx is exclusive so add 1
+    #     end_idx = slice_idx + offset + 1
+
+    #     if self.slice_axis == 0:
+    #         input_slice = input_scan[start_idx:end_idx, :, :]
+    #         if self.width_labels:
+    #             mask_slice = mask_scan[start_idx:end_idx, :, :]
+    #         else:
+    #             mask_slice = mask_scan[slice_idx, :, :]
+    #         mask_slice = mask_scan[start_idx:end_idx, :, :]
+    #     elif self.slice_axis == 1:
+    #         input_slice = input_scan[:, start_idx:end_idx, :]
+    #         if self.width_labels:
+    #             mask_slice = mask_scan[:, start_idx:end_idx, :]
+    #         else:
+    #             mask_slice = mask_scan[:, slice_idx, :]
+    #     elif self.slice_axis == 2:
+    #         input_slice = input_scan[:, :, start_idx:end_idx]
+    #         if self.width_labels:
+    #             mask_slice = mask_scan[:, :, start_idx:end_idx]
+    #         else:
+    #             mask_slice = mask_scan[:, :, slice_idx]
+
+    #     input_slice, mask_slice = self.transform(input_slice, mask_slice)
+
+    #     # cleanup
+    #     scan_object.get("input").uncache()
+    #     scan_object.get("mask").uncache()
+
+    #     return input_slice, mask_slice
+
+    def _get_slices(self, scan_object, slice_idx):
+
         if self.slice_width == 1:
             offset = 0
         else:
             offset = self.slice_width // 2
         slice_idx += offset
         start_idx = slice_idx - offset
-        # end_idx is exclusive so add 1
         end_idx = slice_idx + offset + 1
 
-        if self.slice_axis == 0:
-            input_slice = input_scan[start_idx:end_idx, :, :]
-            if self.width_labels:
-                mask_slice = mask_scan[start_idx:end_idx, :, :]
-            else:
-                mask_slice = mask_scan[slice_idx, :, :]
-            mask_slice = mask_scan[start_idx:end_idx, :, :]
-        elif self.slice_axis == 1:
-            input_slice = input_scan[:, start_idx:end_idx, :]
-            if self.width_labels:
-                mask_slice = mask_scan[:, start_idx:end_idx, :]
-            else:
-                mask_slice = mask_scan[:, slice_idx, :]
-        elif self.slice_axis == 2:
-            input_slice = input_scan[:, :, start_idx:end_idx]
-            if self.width_labels:
-                mask_slice = mask_scan[:, :, start_idx:end_idx]
-            else:
-                mask_slice = mask_scan[:, :, slice_idx]
+        # Determine the slicing based on the axis
+        slice_none = slice(None, None, None)  # Equivalent to ':'
+        slices_input = [slice_none, slice_none, slice_none]
+        slices_mask = [slice_none, slice_none, slice_none]
 
-        input_slice, mask_slice = self.transform(input_slice, mask_slice)
+        # Set the appropriate slice based on the axis and whether width_labels is True
+        if self.width_labels:
+            slices_input[self.slice_axis] = slice(start_idx, end_idx)
+            slices_mask[self.slice_axis] = slice(start_idx, end_idx)
+        else:
+            slices_input[self.slice_axis] = slice(start_idx, end_idx)
+            slices_mask[self.slice_axis] = slice(slice_idx, slice_idx + 1)
 
-        return input_slice, mask_slice
+        if self.mmap:
+            input_slice = scan_object.get("input").get_fdata()[tuple(
+                                                         slices_input)]
+            mask_slice = scan_object.get("mask").get_fdata()[tuple(
+                                                        slices_mask)]
+            scan_object.get("input").uncache()
+            scan_object.get("mask").uncache()
+        else:
+            input_slice = scan_object.get("input")[tuple(slices_input)]
+            mask_slice = scan_object.get("mask")[tuple(slices_mask)]
+
+        return self.transform(input_slice, mask_slice)
 
     def _update_shape_frequencies(self, shape):
         if shape not in self.shape_frequencies:

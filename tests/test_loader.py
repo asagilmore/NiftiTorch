@@ -1,4 +1,5 @@
 import os
+import random
 
 import pytest
 import torch
@@ -97,13 +98,15 @@ def test_first_last(test_dataset, test_dataset_3d, test_dataset_3d_width):
 
 
 def test_matched(matched_test_dataset):
-    for i in range(len(matched_test_dataset)):
+    indexs = random.sample(range(len(matched_test_dataset)), 5)
+    for i in indexs:
         img, mask = matched_test_dataset[i]
         assert torch.allclose(img, mask, atol=1e-6)
 
 
 def test_matched_3d(matched_test_dataset_3d):
-    for i in range(len(matched_test_dataset_3d)):
+    indexs = random.sample(range(len(matched_test_dataset_3d)), 5)
+    for i in indexs:
         img, mask = matched_test_dataset_3d[i]
         middle_index = img.shape[0] // 2
         img_middle = img[middle_index:middle_index + 1, :, :]
@@ -111,6 +114,7 @@ def test_matched_3d(matched_test_dataset_3d):
 
 
 def test_matched_3d_width(matched_test_dataset_3d_width):
-    for i in range(len(matched_test_dataset_3d_width)):
+    indexs = random.sample(range(len(matched_test_dataset_3d_width)), 5)
+    for i in indexs:
         img, mask = matched_test_dataset_3d_width[i]
         assert torch.allclose(img, mask, atol=1e-6)

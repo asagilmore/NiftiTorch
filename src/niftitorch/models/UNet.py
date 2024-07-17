@@ -117,6 +117,8 @@ class UNet(nn.Module):
         """ Classifier """
         outputs = self.outputs(d4)
 
+        outputs = torch.sigmoid(outputs)
+
         return outputs
 
     def train_unet(self, train_loader, val_loader, num_epochs, optimizer=None,

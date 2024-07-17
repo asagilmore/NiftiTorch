@@ -13,8 +13,8 @@ class NiftiDataset(Dataset):
     Dataset class for Nifti to Nifti data.
     This class takes as input two matching datasets of Nifti images
     and returns one the data in one of the following ways:
-        - 2d slices of the images across any axis
-        - 2d slices with a width of n slices on either side of the slice
+    - 2d slices of the images across any axis
+    - 2d slices with a width of n slices on either side of the slice
 
     Parameters
     ----------

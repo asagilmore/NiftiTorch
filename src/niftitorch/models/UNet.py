@@ -164,24 +164,25 @@ class UNet(nn.Module):
                 loss.backward()
                 optimizer.step()
 
-                train_loss += loss.item()
+                train_loss += loss.item() * inputs.size(0)
                 total_samples += inputs.size(0)
 
             train_loss /= total_samples
 
             self.eval()
             val_loss = 0.0
-            total_samples
+            total_samples = 0
             for inputs, targets in val_loader:
                 inputs, targets = inputs.to(device), targets.to(device)
 
                 outputs = self(inputs)
                 loss = criterion(outputs, targets)
 
-                val_loss += loss.item()
+                val_loss += loss.item() * inputs.size(0)
                 total_samples += inputs.size(0)
 
             val_loss /= total_samples
+
             scheduler.step(val_loss)
 
             torch.save({

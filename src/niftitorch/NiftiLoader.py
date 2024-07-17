@@ -169,7 +169,7 @@ class NiftiDataset(Dataset):
         slices_input = [slice_none, slice_none, slice_none]
         slices_mask = [slice_none, slice_none, slice_none]
 
-        # Set the appropriate slice based on the axis and whether width_labels is True
+        # Set the appropriate slice based on the axis
         if self.width_labels:
             slices_input[self.slice_axis] = slice(start_idx, end_idx)
             slices_mask[self.slice_axis] = slice(start_idx, end_idx)

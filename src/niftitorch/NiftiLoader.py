@@ -64,7 +64,8 @@ class NiftiDataset(Dataset):
     '''
     def __init__(self, input_dir, mask_dir, transform,
                  split_char="-", preload_dtype="float32", scan_size='most',
-                 slice_axis=2, slice_width=1, width_labels=False):
+                 slice_axis=2, slice_width=1, width_labels=False,
+                 force_no_resample=False):
         for name, value in locals().items():
             if name != "self":
                 setattr(self, name, value)
@@ -126,27 +127,26 @@ class NiftiDataset(Dataset):
         input_slice = scan_object.get("input").dataobj[tuple(slices_input)]
         mask_slice = scan_object.get("mask").dataobj[tuple(slices_mask)]
 
-        # new_axes_order = [self.slice_axis] + [i for i in range(3) if i != self.slice_axis]
-        # input_slice = np.transpose(input_slice, new_axes_order).copy()
-        # mask_slice = np.transpose(mask_slice, new_axes_order).copy()
-
-        image_resample_shape = list(self._get_resample_shape())
-        mask_resample_shape = list(self._get_resample_shape())
-        if self.width_labels:
-            image_resample_shape[self.slice_axis] = self.slice_width
-            mask_resample_shape[self.slice_axis] = self.slice_width
+        if len(self.shape_frequencies) == 1 or self.force_no_resample:
+            return self.transform(input_slice.copy(), mask_slice.copy())
         else:
-            image_resample_shape[self.slice_axis] = self.slice_width
-            mask_resample_shape[self.slice_axis] = 1
+            image_resample_shape = list(self._get_resample_shape())
+            mask_resample_shape = list(self._get_resample_shape())
+            if self.width_labels:
+                image_resample_shape[self.slice_axis] = self.slice_width
+                mask_resample_shape[self.slice_axis] = self.slice_width
+            else:
+                image_resample_shape[self.slice_axis] = self.slice_width
+                mask_resample_shape[self.slice_axis] = 1
 
-        if input_slice.shape != tuple(image_resample_shape):
-            input_slice = self._resample_image(input_slice,
-                                               image_resample_shape)
-        if mask_slice.shape != tuple(mask_resample_shape):
-            mask_slice = self._resample_image(mask_slice,
-                                              mask_resample_shape)
+            if input_slice.shape != tuple(image_resample_shape):
+                input_slice = self._resample_image(input_slice,
+                                                   image_resample_shape)
+            if mask_slice.shape != tuple(mask_resample_shape):
+                mask_slice = self._resample_image(mask_slice,
+                                                  mask_resample_shape)
 
-        return self.transform(input_slice.copy(), mask_slice.copy())
+            return self.transform(input_slice.copy(), mask_slice.copy())
 
     def _update_shape_frequencies(self, shape):
         if shape not in self.shape_frequencies:
@@ -158,7 +158,7 @@ class NiftiDataset(Dataset):
         '''
         Resamples the input image to the new shape
         '''
-        image = image.astype(np.float32)
+
         zoom_factors = [new_dim / old_dim for new_dim, old_dim in
                         zip(new_shape, image.shape)]
         reasampled_image = zoom(image, zoom_factors, order=1)
@@ -173,8 +173,7 @@ class NiftiDataset(Dataset):
         elif scan_size == 'largest':
             largest_shape = None
             largest_size = 0
-            for shape, occurrences in self.shapes_dict.items():
-
+            for shape, occurrences in self.shape_frequencies.items():
                 size = shape[0] * shape[1] * shape[2]
                 if size > largest_size:
                     largest_shape = shape
@@ -184,7 +183,7 @@ class NiftiDataset(Dataset):
         elif scan_size == 'smallest':
             smallest_shape = None
             smallest_size = np.inf
-            for shape, occurrences in self.shapes_dict.items():
+            for shape, occurrences in self.shape_frequencies.items():
                 size = shape[0] * shape[1] * shape[2]
                 if size < smallest_size:
                     smallest_shape = shape

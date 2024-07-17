@@ -235,14 +235,14 @@ class NiftiDataset(Dataset):
         ids = get_matched_ids([self.input_dir, self.mask_dir],
                               split_char=self.split_char)
 
-        result_list = []
-        for id in tqdm(ids):
-            result_list.append(self._load_scan(id))
+        # result_list = []
+        # for id in tqdm(ids):
+        #     result_list.append(self._load_scan(id))
 
-        # # mutlthreading starts here
-        # with ThreadPoolExecutor() as executor:
-        #     result_list = list(tqdm(executor.map(self._load_scan, ids),
-        #                             total=len(ids)))
+        # mutlthreading starts here
+        with ThreadPoolExecutor() as executor:
+            result_list = list(tqdm(executor.map(self._load_scan, ids),
+                                    total=len(ids)))
 
         # now we count up the slices and add the first and last index
         scan_list = []

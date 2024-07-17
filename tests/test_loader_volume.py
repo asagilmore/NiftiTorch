@@ -54,8 +54,8 @@ def test_shape(test_dataset_shape):
 
 
 def test_dataset_len(test_dataset, test_dataset_shape):
-    assert len(test_dataset_shape) == 4
-    assert len(test_dataset) == 4
+    assert len(test_dataset_shape) == 3
+    assert len(test_dataset) == 3
 
 
 def test_first_last(test_dataset, test_dataset_shape):

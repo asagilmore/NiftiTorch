@@ -63,15 +63,24 @@ class WassersteinGAN(nn.Module):
     '''
     Wasserstein GAN with Gradient Penalty
 
-    Args:
-    - critic (nn.Module): the critic network, Default is Critic
-    - generator (nn.Module): the generator network, Default is UNet
-    - critic_penalty (nn.Module): the penalty function for the critic,
-        Default is GradientPenalty
-    - lambda_gp (float): the weight of the gradient penalty, Default is 10
-    - second_criterior (nn.Module): the second loss function for the generator,
-        Default is None, in which case the generator will only use the critic
-        loss
+    Parameters
+    ----------
+    critic : nn.Module, optional
+        Network to use as critic, Default is Critic
+    generator : nn.Module, optional
+        Network to use as generator, Default is UNet
+    critic_penalty : nn.Module, optional
+        Penalty function for the critic, Default is GradientPenalty
+    lambda_gp : float, optional
+        Weight of the penalty function, Default is 10
+    second_criterior : nn.Module, optional
+        Optional, second loss function for the generator, Default is None
+    second_criterion_lambda : float, optional
+        Weight of the second loss function, Default is 1
+    identity_loss : nn.Module, optional
+        Optional, loss function to be used for identity loss, Default is None
+    identity_lambda : float, optional
+        Weight of the identity loss, Default is 1
     '''
     def __init__(self, critic=None, generator=None, critic_penalty=None,
                  lambda_gp=10, second_criterior=None,
@@ -190,8 +199,34 @@ class WassersteinGAN(nn.Module):
                 'second_loss': second_loss, 'identity_loss': identity_loss}
 
     def train_self(self, data_loader1, data_loader2, critic_optimizer,
-                   generator_optimizer, device=None, critic_iters=5,
-                   lambda_gp=10):
+                   generator_optimizer, device=None, critic_iters=5):
+        '''
+        Function to train one epoch of the Model
+
+        this function needs two identical data loaders with shuffle set to
+        True to train the critic.
+
+        Parameters
+        ----------
+        data_loader1 : torch.utils.data.DataLoader
+            DataLoader for the first set of images
+        data_loader2 : torch.utils.data.DataLoader
+            DataLoader for the second set of images
+        critic_optimizer : torch.optim.Optimizer
+            Optimizer for the critic
+        generator_optimizer : torch.optim.Optimizer
+            Optimizer for the generator
+        device : torch.device, optional
+            Device to use, Default uses cuda if available, else cpu
+        critic_iters : int, optional
+            Number of iterations to train the critic relative to the generator
+            Default is 5
+
+        Returns
+        -------
+        dict
+            Dictionary with critic_loss and generator_loss as keys
+        '''
         if device is None:
             device = torch.device(
                      'cuda' if torch.cuda.is_available() else 'cpu')

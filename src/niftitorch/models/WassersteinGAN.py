@@ -61,7 +61,10 @@ class GradientPenalty(nn.Module):
 
 class WassersteinGAN(nn.Module):
     '''
-    Wasserstein GAN with Gradient Penalty
+    Wasserstein GAN with Gradient Penalty.
+    See: Arjovsky, Martin, Soumith Chintala, and Léon Bottou. "Wasserstein
+    generative adversarial networks."
+    arXiv:1701.07875 [stat.ML]
 
     Parameters
     ----------
@@ -161,9 +164,9 @@ class WassersteinGAN(nn.Module):
 
             images, masks = images.to(device), masks.to(device)
 
-            output = self.generator(images)
+            outputs = self.generator(images)
 
-            output_concat = torch.cat([images, output], dim=1)
+            output_concat = torch.cat([images, outputs], dim=1)
             validity = self.critic(output_concat)
 
             critic_loss = -torch.mean(validity)
@@ -173,7 +176,7 @@ class WassersteinGAN(nn.Module):
             generator_loss = critic_loss
 
             if self.second_criterior is not None:
-                second_loss = self.second_criterior(output, masks)
+                second_loss = self.second_criterior(outputs, masks)
                 second_loss *= self.second_criterion_lambda
                 running_second_loss += second_loss * images.size(0)
                 generator_loss += second_loss
@@ -197,6 +200,100 @@ class WassersteinGAN(nn.Module):
         identity_loss = running_identity_loss / num_samples
         return {'total_loss': total_loss, 'critic_loss': critic_loss,
                 'second_loss': second_loss, 'identity_loss': identity_loss}
+
+    def _valid_generator(self, data_loader, device):
+        self.critic.eval()
+        self.generator.eval()
+
+        running_generator_loss = 0
+        running_critic_loss = 0
+        running_identity_loss = 0
+        running_second_loss = 0
+        num_samples = 0
+        for images, masks in data_loader:
+            images, masks = images.to(device), masks.to(device)
+            outputs = self.generator(images)
+
+            output_concat = torch.cat([images, outputs], dim=1)
+            validity = self.critic(output_concat)
+            critic_loss = -torch.mean(validity)
+            running_critic_loss += critic_loss.item() * images.size(0)
+
+            generator_loss = critic_loss
+
+            if self.second_criterior is not None:
+                second_loss = self.second_criterior(outputs, masks)
+                second_loss *= self.second_criterion_lambda
+                running_second_loss += second_loss * images.size(0)
+                generator_loss += second_loss
+
+            if self.identity_loss is not None:
+                identity_img = self.generator(masks)
+                identity_loss = self.identity_loss(identity_img, masks)
+                identity_loss *= self.identity_lambda
+                running_identity_loss += identity_loss * images.size(0)
+                generator_loss += identity_loss
+
+            running_generator_loss += generator_loss.item() * images.size(0)
+            num_samples += images.size(0)
+
+        total_loss = running_generator_loss / num_samples
+        critic_loss = running_critic_loss / num_samples
+        second_loss = running_second_loss / num_samples
+        identity_loss = running_identity_loss / num_samples
+        return {'total_loss': total_loss, 'critic_loss': critic_loss,
+                'second_loss': second_loss, 'identity_loss': identity_loss}
+
+    def _valid_critic(self, data_loader, device):
+        self.critic.eval()
+        self.generator.eval()
+
+        running_critic_loss = 0
+        num_samples = 0
+        for images, masks in data_loader:
+            images, masks = images.to(device), masks.to(device)
+
+            fake_masks = self.generator(images)
+
+            fake_concat = torch.cat([images, fake_masks], dim=1)
+            real_concat = torch.cat([images, masks], dim=1)
+
+            real_validity = self.critic(real_concat)
+            fake_validity = self.critic(fake_concat)
+
+            critic_loss = -torch.mean(real_validity)
+            critic_loss += torch.mean(fake_validity)
+
+            running_critic_loss += critic_loss.item() * images.size(0)
+            num_samples += images.size(0)
+
+        final_loss = running_critic_loss / num_samples
+        return final_loss
+
+    def valid_self(self, data_loader, device=None):
+        '''
+        Function to validate the Model
+
+        Parameters
+        ----------
+        data_loader : torch.utils.data.DataLoader
+            DataLoader for the validation set
+        device : torch.device, optional
+            Device to use, Default uses cuda if available, else cpu
+
+        Returns
+        -------
+        dict
+            Dictionary with critic_loss and generator_loss as keys
+        '''
+        if device is None:
+            device = torch.device(
+                     'cuda' if torch.cuda.is_available() else 'cpu')
+        self.to(device)
+        self.critic.eval()
+        self.generator.eval()
+
+
 
     def train_self(self, data_loader1, data_loader2, critic_optimizer,
                    generator_optimizer, device=None, critic_iters=5):

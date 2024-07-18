@@ -79,7 +79,7 @@ class UNet(nn.Module):
     '''
     UNet model. See: Ronneberger, Olaf, Philipp Fischer, and Thomas Brox.
     "U-net: Convolutional networks for biomedical image segmentation."
-    arXiv:1505.04597
+    arXiv:1505.04597 [cs.CV]
 
     Parameters
     ----------

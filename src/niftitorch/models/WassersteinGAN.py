@@ -241,8 +241,9 @@ class WassersteinGAN(nn.Module):
         critic_loss = running_critic_loss / num_samples
         second_loss = running_second_loss / num_samples
         identity_loss = running_identity_loss / num_samples
-        return {'total_loss': total_loss, 'critic_loss': critic_loss,
-                'second_loss': second_loss, 'identity_loss': identity_loss}
+        return {'total_gen_loss': total_loss, 'critic_gen_loss': critic_loss,
+                'second_gen_loss': second_loss,
+                'identity_gen_loss': identity_loss}
 
     def _valid_critic(self, data_loader, device):
         self.critic.eval()
@@ -339,5 +340,5 @@ class WassersteinGAN(nn.Module):
         loss_dict = self._train_generator(data_loader1, generator_optimizer,
                                           device)
 
-        return {'critic_loss': critic_loss,
-                'generator_loss': loss_dict}
+        loss_dict['critic_loss'] = critic_loss
+        return loss_dict

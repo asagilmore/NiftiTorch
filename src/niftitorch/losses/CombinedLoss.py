@@ -1,19 +1,29 @@
 import torch.nn as nn
-from .PerceptualLoss import PerceptualLoss
 
 
 class CombinedLoss(nn.Module):
-    def __init__(self, criterion_1=nn.MSELoss(), criterion_2=PerceptualLoss(),
-                 alpha=1.0, beta=0.1):
-        super(CombinedLoss, self).__init__()
-        self.criterion_1 = criterion_1
-        self.criterion_2 = criterion_2
-        self.alpha = alpha
-        self.beta = beta
+    def __init__(self):
+        super().__init__()
+        self.losses = []
+        self.weights = []
+
+    def add_loss(self, loss, weight):
+        self.losses.append(loss)
+        self.weights.append(weight)
 
     def forward(self, output, target):
-        criterion_loss = self.criterion_1(output, target)
-        perceptual_loss = self.criterion_2(output, target)
+        combined_loss = 0.0
+        for i, loss in enumerate(self.losses):
+            combined_loss += self.weights[i] * loss(output, target)
 
-        total_loss = self.alpha * criterion_loss + self.beta * perceptual_loss
-        return total_loss
+        return combined_loss
+
+    def forward_validate(self, output, target):
+        combined_loss = 0.0
+        loss_dict = {}
+        for i, loss in enumerate(self.losses):
+            loss_val = loss(output, target)
+            loss_dict[type(loss).__name__] = loss_val
+            combined_loss += self.weights[i] * loss_val
+
+        return combined_loss, loss_dict

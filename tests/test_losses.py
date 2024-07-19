@@ -16,7 +16,9 @@ def setup_combined_loss():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     perceptual_loss = PerceptualLoss().to(device)
     MSE_loss = torch.nn.MSELoss()
-    loss = CombinedLoss(criterion_1=MSE_loss, criterion_2=perceptual_loss)
+    loss = CombinedLoss()
+    loss.add_loss(MSE_loss, 1)
+    loss.add_loss(perceptual_loss, 1)
     loss.to(device)
     return loss, device
 

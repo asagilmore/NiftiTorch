@@ -294,6 +294,11 @@ class WassersteinGAN(nn.Module):
         self.critic.eval()
         self.generator.eval()
 
+        loss_dict = self._valid_generator(data_loader, device)
+        critic_loss = self._valid_critic(data_loader, device)
+        loss_dict['critic_loss'] = critic_loss
+        return loss_dict
+
     def train_self(self, data_loader1, data_loader2, critic_optimizer,
                    generator_optimizer, device=None, critic_iters=5):
         '''

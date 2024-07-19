@@ -21,8 +21,10 @@ class HistogramLoss(nn.Module):
         else:
             max_val = self.max_val
 
-        hist_output = torch.histc(output, bins=self.num_bins, min=min_val, max=max_val)
-        hist_target = torch.histc(target, bins=self.num_bins, min=min_val, max=max_val)
+        hist_output = torch.histc(output, bins=self.num_bins, min=min_val,
+                                  max=max_val)
+        hist_target = torch.histc(target, bins=self.num_bins, min=min_val,
+                                  max=max_val)
 
         diff = torch.abs(hist_output - hist_target)
 

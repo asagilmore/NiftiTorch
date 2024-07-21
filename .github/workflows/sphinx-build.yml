@@ -24,7 +24,7 @@ jobs:
       run: |
         pip install sphinx sphinx_rtd_theme sphinxcontrib-napoleon
     - name: Build Docs
-      run: sphinx-apidoc -f -o docs/source .
+      run: sphinx-apidoc -f -o docs/source ./src/niftitorch/
     - name: Build HTML
       run: sphinx-build -b html docs/source docs/build
     - name: Deploy to GitHub Pages

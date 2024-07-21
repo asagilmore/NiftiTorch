@@ -20,7 +20,8 @@ class IterableNiftiDataset(IterableDataset):
     This class also implements psuedo random sampling of the data by
     using a buffer of scans from which images are sampled in random order.
     once the buffer is empty, it is refilled with new scans. This significantly
-    increase speed of data loading due to the fact that scans are read squentially
+    increase speed of data loading due to the fact that scans are read
+    sequentially
     from disk.
 
     Parameters

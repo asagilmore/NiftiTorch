@@ -60,7 +60,7 @@ class GradientPenalty(nn.Module):
 
 
 class WassersteinGAN(nn.Module):
-    '''
+    """
     Wasserstein GAN with Gradient Penalty.
     See: Arjovsky, Martin, Soumith Chintala, and Léon Bottou. "Wasserstein
     generative adversarial networks."
@@ -84,7 +84,7 @@ class WassersteinGAN(nn.Module):
         Optional, loss function to be used for identity loss, Default is None
     identity_lambda : float, optional
         Weight of the identity loss, Default is 1
-    '''
+    """
     def __init__(self, critic=None, generator=None, critic_penalty=None,
                  lambda_gp=10, second_criterior=None,
                  second_criterion_lambda=1, identity_loss=None,
@@ -272,7 +272,7 @@ class WassersteinGAN(nn.Module):
         return final_loss
 
     def valid_self(self, data_loader, device=None):
-        '''
+        """
         Function to validate the Model
 
         Parameters
@@ -286,7 +286,7 @@ class WassersteinGAN(nn.Module):
         -------
         dict
             Dictionary with critic_loss and generator_loss as keys
-        '''
+        """
         if device is None:
             device = torch.device(
                      'cuda' if torch.cuda.is_available() else 'cpu')
@@ -301,7 +301,7 @@ class WassersteinGAN(nn.Module):
 
     def train_self(self, data_loader1, data_loader2, critic_optimizer,
                    generator_optimizer, device=None, critic_iters=5):
-        '''
+        """
         Function to train one epoch of the Model
 
         this function needs two identical data loaders with shuffle set to
@@ -327,7 +327,7 @@ class WassersteinGAN(nn.Module):
         -------
         dict
             Dictionary with critic_loss and generator_loss as keys
-        '''
+        """
         if device is None:
             device = torch.device(
                      'cuda' if torch.cuda.is_available() else 'cpu')

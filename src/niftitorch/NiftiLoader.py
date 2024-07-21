@@ -9,7 +9,7 @@ from .utils import get_matched_ids, get_filepath_list_from_id
 
 
 class NiftiDataset(Dataset):
-    '''
+    """
     Dataset class for Nifti to Nifti data.
     This class takes as input two matching datasets of Nifti images
     and returns one the data in one of the following ways:
@@ -52,7 +52,7 @@ class NiftiDataset(Dataset):
         slices. If False, the labels will be returned as a 2d slice
         corresponding to the center slice of the input.
         default is False
-    '''
+    """
     def __init__(self, input_dir, mask_dir, transform,
                  split_char="-", scan_size='most',
                  slice_axis=2, slice_width=1, width_labels=False,
@@ -146,9 +146,9 @@ class NiftiDataset(Dataset):
             self.shape_frequencies[shape] += 1
 
     def _resample_image(self, image, new_shape):
-        '''
+        """
         Resamples the input image to the new shape
-        '''
+        """
 
         zoom_factors = [new_dim / old_dim for new_dim, old_dim in
                         zip(new_shape, image.shape)]
@@ -255,9 +255,9 @@ class NiftiDataset(Dataset):
         return scan_list
 
     def _get_num_slices(self, scan):
-        '''
+        """
         Returns the number of slices for the input image input
-        '''
+        """
         # Check if scan is a filepath (string), then load it; otherwise,
         # use it directly
         if isinstance(scan, str):

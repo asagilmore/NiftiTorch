@@ -2,9 +2,9 @@ import os
 
 
 def get_matched_ids(dirs, split_char="-"):
-    '''
+    """
     returns a sorted set of all ids that exist in all given dirs
-    '''
+    """
     files = [os.listdir(dir) for dir in dirs]
     file_ids = [[file.split(split_char)[0] for file in file_list] for
                 file_list in files]

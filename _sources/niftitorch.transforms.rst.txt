@@ -1,0 +1,21 @@
+niftitorch.transforms package
+=============================
+
+Submodules
+----------
+
+niftitorch.transforms.Transforms module
+---------------------------------------
+
+.. automodule:: niftitorch.transforms.Transforms
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: niftitorch.transforms
+   :members:
+   :undoc-members:
+   :show-inheritance:

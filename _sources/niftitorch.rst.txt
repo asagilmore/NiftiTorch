@@ -1,0 +1,39 @@
+niftitorch package
+==================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   niftitorch.losses
+   niftitorch.models
+   niftitorch.transforms
+
+Submodules
+----------
+
+niftitorch.NiftiLoader module
+-----------------------------
+
+.. automodule:: niftitorch.NiftiLoader
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niftitorch.utils module
+-----------------------
+
+.. automodule:: niftitorch.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: niftitorch
+   :members:
+   :undoc-members:
+   :show-inheritance:

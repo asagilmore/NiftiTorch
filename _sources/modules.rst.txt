@@ -1,0 +1,7 @@
+niftitorch
+==========
+
+.. toctree::
+   :maxdepth: 4
+
+   niftitorch

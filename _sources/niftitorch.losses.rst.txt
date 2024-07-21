@@ -1,0 +1,29 @@
+niftitorch.losses package
+=========================
+
+Submodules
+----------
+
+niftitorch.losses.CombinedLoss module
+-------------------------------------
+
+.. automodule:: niftitorch.losses.CombinedLoss
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niftitorch.losses.PerceptualLoss module
+---------------------------------------
+
+.. automodule:: niftitorch.losses.PerceptualLoss
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: niftitorch.losses
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,29 @@
+niftitorch.models package
+=========================
+
+Submodules
+----------
+
+niftitorch.models.UNet module
+-----------------------------
+
+.. automodule:: niftitorch.models.UNet
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+niftitorch.models.WassersteinGAN module
+---------------------------------------
+
+.. automodule:: niftitorch.models.WassersteinGAN
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: niftitorch.models
+   :members:
+   :undoc-members:
+   :show-inheritance:

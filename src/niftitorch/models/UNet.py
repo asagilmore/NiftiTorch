@@ -1,9 +1,5 @@
 import torch
 import torch.nn as nn
-import os
-
-# source:
-# https://github.com/nikhilroxtomar/Semantic-Segmentation-Architecture/tree/main
 
 
 class conv_block(nn.Module):
@@ -76,6 +72,21 @@ class decoder_block(nn.Module):
 
 
 class UNet(nn.Module):
+    '''
+    UNet model. See: Ronneberger, Olaf, Philipp Fischer, and Thomas Brox.
+    "U-net: Convolutional networks for biomedical image segmentation."
+    arXiv:1505.04597 [cs.CV]
+
+    Parameters
+    ----------
+    in_channels : int
+        Number of input channels.
+    out_channels : int
+        Number of output channels.
+    ini_numb_filters : int, optional
+        Number of filters in the first layer. Default is 16.
+
+    '''
     def __init__(self, in_channels, out_channels, ini_numb_filters=16):
         super().__init__()
 
@@ -121,79 +132,79 @@ class UNet(nn.Module):
 
         return outputs
 
-    def train_unet(self, train_loader, val_loader, num_epochs, optimizer=None,
-                   criterion=None, scheduler=None, device=None,
-                   use_checkpoint=True,
-                   checkpoint_path="checkpoint.pth"):
-        """ Training the model """
+    def train_self(self, data_loader, optimizer, criterion, device=None):
+        '''
+        Function to train one epoch of the model
+
+        Parameters
+        ----------
+        data_loader : torch.utils.data.DataLoader
+            Data loader for the model.
+        optimizer : torch.optim.Optimizer
+            Optimizer for the model.
+        criterion : torch.nn.Module
+            Loss function for the model.
+        device : str, optional
+            Device to train, Default uses cuda if available, else cpu
+
+        Returns
+        -------
+        float
+            average loss for the epoch
+        '''
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
-
         self.to(device)
+        self.train()
 
-        if optimizer is None:
-            optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        running_loss = 0.0
+        num_samples = 0
+        for inputs, targets in data_loader:
+            inputs, targets = inputs.to(device), targets.to(device)
 
-        if criterion is None:
-            criterion = nn.MSELoss()
+            optimizer.zero_grad()
+            outputs = self(inputs)
+            loss = criterion(outputs, targets)
+            loss.backward()
+            optimizer.step()
 
-        if scheduler is None:
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                                                        optimizer,
-                                                        mode='min',
-                                                        patience=5)
+            running_loss += loss.item() * inputs.size(0)
+            num_samples += inputs.size(0)
 
-        start_epoch = 0
+        return running_loss / num_samples
 
-        if use_checkpoint:
-            if os.path.exists(checkpoint_path):
-                print("model checkpoint found, loading model")
-                checkpoint = torch.load(checkpoint_path)
-                self.load_state_dict(checkpoint["model_state_dict"])
-                optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-                scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
-                start_epoch = checkpoint["epoch"]
+    def valid_self(self, data_loader, criterion, device=None):
+        '''
+        Function to validate the model
 
-        for epoch in range(start_epoch, num_epochs):
-            self.train()
-            train_loss = 0.0
-            total_samples = 0
-            for inputs, targets in train_loader:
-                inputs, targets = inputs.to(device), targets.to(device)
+        Parameters
+        ----------
+        data_loader : torch.utils.data.DataLoader
+            Data loader for the model.
+        criterion : torch.nn.Module
+            Loss function for the model.
+        device : str, optional
+            Device to train, Default uses cuda if available, else cpu
 
-                optimizer.zero_grad()
-                outputs = self(inputs)
-                loss = criterion(outputs, targets)
-                loss.backward()
-                optimizer.step()
+        Returns
+        -------
+        float
+            average loss for the epoch
+        '''
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.to(device)
+        self.eval()
 
-                train_loss += loss.item() * inputs.size(0)
-                total_samples += inputs.size(0)
+        running_loss = 0.0
+        num_samples = 0
+        for inputs, targets in data_loader:
+            inputs, targets = inputs.to(device), targets.to(device)
 
-            train_loss /= total_samples
+            outputs = self(inputs)
+            loss = criterion(outputs, targets)
 
-            self.eval()
-            val_loss = 0.0
-            total_samples = 0
-            for inputs, targets in val_loader:
-                inputs, targets = inputs.to(device), targets.to(device)
+            running_loss += loss.item() * inputs.size(0)
+            num_samples += inputs.size(0)
 
-                outputs = self(inputs)
-                loss = criterion(outputs, targets)
-
-                val_loss += loss.item() * inputs.size(0)
-                total_samples += inputs.size(0)
-
-            val_loss /= total_samples
-
-            scheduler.step(val_loss)
-
-            torch.save({
-                "model_state_dict": self.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-                "scheduler_state_dict": scheduler.state_dict(),
-                "epoch": epoch+1,
-            }, checkpoint_path)
-
-            print(f"Epoch: {epoch+1}/{num_epochs}, Train Loss: {train_loss}, "
-                  f"Val Loss: {val_loss}")
+        return running_loss / num_samples

@@ -72,7 +72,7 @@ class decoder_block(nn.Module):
 
 
 class UNet(nn.Module):
-    '''
+    """
     UNet model. See: Ronneberger, Olaf, Philipp Fischer, and Thomas Brox.
     "U-net: Convolutional networks for biomedical image segmentation."
     arXiv:1505.04597 [cs.CV]
@@ -86,7 +86,7 @@ class UNet(nn.Module):
     ini_numb_filters : int, optional
         Number of filters in the first layer. Default is 16.
 
-    '''
+    """
     def __init__(self, in_channels, out_channels, ini_numb_filters=16):
         super().__init__()
 
@@ -133,7 +133,7 @@ class UNet(nn.Module):
         return outputs
 
     def train_self(self, data_loader, optimizer, criterion, device=None):
-        '''
+        """
         Function to train one epoch of the model
 
         Parameters
@@ -151,7 +151,7 @@ class UNet(nn.Module):
         -------
         float
             average loss for the epoch
-        '''
+        """
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.to(device)
@@ -174,7 +174,7 @@ class UNet(nn.Module):
         return running_loss / num_samples
 
     def valid_self(self, data_loader, criterion, device=None):
-        '''
+        """
         Function to validate the model
 
         Parameters
@@ -190,7 +190,7 @@ class UNet(nn.Module):
         -------
         float
             average loss for the epoch
-        '''
+        """
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         self.to(device)

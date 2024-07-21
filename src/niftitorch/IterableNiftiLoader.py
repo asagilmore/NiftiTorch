@@ -2,6 +2,7 @@ from concurrent.futures import ThreadPoolExecutor
 import random
 
 from torch.utils.data import IterableDataset
+import torch
 from scipy.ndimage import zoom
 import nibabel as nib
 from tqdm import tqdm
@@ -83,7 +84,7 @@ class IterableNiftiDataset(IterableDataset):
         self.slice_axis = slice_axis
 
         self.shape_frequencies = {}
-        self.scan_list = self._load_scan_list()
+        self.full_scan_list = self._load_scan_list()
         self.used_scans = []
         self.scan_buffer = []
         self.buffer_indexs = []
@@ -276,6 +277,19 @@ class IterableNiftiDataset(IterableDataset):
         return self.transform(input_slice, mask_slice)
 
     def __iter__(self):
+        worker_info = torch.utils.data.get_worker_info()
+        if worker_info is None:
+            self.scan_list = self.full_scan_list
+        else:
+            total_length = len(self.full_scan_list)
+            per_worker = total_length // worker_info.num_workers
+            remainder = total_length % worker_info.num_workers
+            if worker_info.id == 0:
+                self.scan_list = self.full_scan_list[:per_worker + remainder]
+            else:
+                start_index = worker_info.id * per_worker + remainder
+                end_index = start_index + per_worker
+                self.scan_list = self.full_scan_list[start_index:end_index]
         return self
 
     def __next__(self):

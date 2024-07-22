@@ -76,7 +76,7 @@ class WassersteinGAN(nn.Module):
         Penalty function for the critic, Default is GradientPenalty
     lambda_gp : float, optional
         Weight of the penalty function, Default is 10
-    second_criterior : nn.Module, optional
+    second_criterion : nn.Module, optional
         Optional, second loss function for the generator, Default is None
     second_criterion_lambda : float, optional
         Weight of the second loss function, Default is 1
@@ -86,7 +86,7 @@ class WassersteinGAN(nn.Module):
         Weight of the identity loss, Default is 1
     """
     def __init__(self, critic=None, generator=None, critic_penalty=None,
-                 lambda_gp=10, second_criterior=None,
+                 lambda_gp=10, second_criterion=None,
                  second_criterion_lambda=1, identity_loss=None,
                  identity_lambda=1):
         super().__init__()
@@ -101,7 +101,7 @@ class WassersteinGAN(nn.Module):
         self.generator = generator
         self.critic_penalty = critic_penalty
         self.lambda_gp = lambda_gp
-        self.second_criterior = second_criterior
+        self.second_criterion = second_criterion
         self.second_criterion_lambda = second_criterion_lambda
         self.identity_loss = identity_loss
         self.identity_lambda = identity_lambda
@@ -175,8 +175,8 @@ class WassersteinGAN(nn.Module):
 
             generator_loss = critic_loss
 
-            if self.second_criterior is not None:
-                second_loss = self.second_criterior(outputs, masks)
+            if self.second_criterion is not None:
+                second_loss = self.second_criterion(outputs, masks)
                 second_loss *= self.second_criterion_lambda
                 running_second_loss += second_loss * images.size(0)
                 generator_loss += second_loss
@@ -221,8 +221,8 @@ class WassersteinGAN(nn.Module):
 
             generator_loss = critic_loss
 
-            if self.second_criterior is not None:
-                second_loss = self.second_criterior(outputs, masks)
+            if self.second_criterion is not None:
+                second_loss = self.second_criterion(outputs, masks)
                 second_loss *= self.second_criterion_lambda
                 running_second_loss += second_loss * images.size(0)
                 generator_loss += second_loss

@@ -178,14 +178,14 @@ class WassersteinGAN(nn.Module):
             if self.second_criterion is not None:
                 second_loss = self.second_criterion(outputs, masks)
                 second_loss *= self.second_criterion_lambda
-                running_second_loss += second_loss * images.size(0)
+                running_second_loss += second_loss.item() * images.size(0)
                 generator_loss += second_loss
 
             if self.identity_loss is not None:
                 identity_img = self.generator(masks)
                 identity_loss = self.identity_loss(identity_img, masks)
                 identity_loss *= self.identity_lambda
-                running_identity_loss += identity_loss * images.size(0)
+                running_identity_loss += identity_loss.item() * images.size(0)
                 generator_loss += identity_loss
 
             generator_loss.backward()
@@ -224,14 +224,14 @@ class WassersteinGAN(nn.Module):
             if self.second_criterion is not None:
                 second_loss = self.second_criterion(outputs, masks)
                 second_loss *= self.second_criterion_lambda
-                running_second_loss += second_loss * images.size(0)
+                running_second_loss += second_loss.item() * images.size(0)
                 generator_loss += second_loss
 
             if self.identity_loss is not None:
                 identity_img = self.generator(masks)
                 identity_loss = self.identity_loss(identity_img, masks)
                 identity_loss *= self.identity_lambda
-                running_identity_loss += identity_loss * images.size(0)
+                running_identity_loss += identity_loss.item() * images.size(0)
                 generator_loss += identity_loss
 
             running_generator_loss += generator_loss.item() * images.size(0)
